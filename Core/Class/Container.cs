@@ -67,4 +67,4 @@ namespace Nocturne.Core.Class
             return result.As<KOutput>();
         }
     }
-};
+}
