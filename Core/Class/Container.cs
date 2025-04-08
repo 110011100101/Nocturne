@@ -14,7 +14,7 @@ namespace Nocturne.Core.Class
         {
             if (units.Count == 0)
             {
-                Type[] genericArguments = unit.GetType().GetGenericArguments();
+                Type[] genericArguments = unit.GetType().BaseType.GetGenericArguments();
 
                 if (genericArguments.First() != typeof(TInput))
                 {
@@ -26,8 +26,8 @@ namespace Nocturne.Core.Class
                 // 检查后续unit的TInput是否与前一个unit的KOutput一致
                 IUnit lastUnit = units.Last();
 
-                Type[] lastGenericArguments = lastUnit.GetType().GetGenericArguments();
-                Type[] unitGenericArguments = unit.GetType().GetGenericArguments();
+                Type[] lastGenericArguments = lastUnit.GetType().BaseType.GetGenericArguments();
+                Type[] unitGenericArguments = unit.GetType().BaseType.GetGenericArguments();
 
                 if (lastGenericArguments.Last() != unitGenericArguments.First())
                 {
@@ -51,7 +51,7 @@ namespace Nocturne.Core.Class
             }
             
             // 这里规定了输出类型必须严格遵循框架
-            if (units.Last().GetType().GetGenericArguments().Last() != typeof(KOutput))
+            if (units.Last().GetType().BaseType.GetGenericArguments().Last() != typeof(KOutput))
             {
                 throw new Exception("Ouput type is not match.");
             }

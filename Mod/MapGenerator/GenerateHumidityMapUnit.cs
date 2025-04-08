@@ -1,37 +1,34 @@
+using System.Threading.Tasks;
 using Godot;
-using Godot.Collections;
 using Nocturne.Core.Class;
 
-public class GenerateHumidityMapUnit : Unit<Array<Image>, Array<Image>>
+public class GenerateHumidityMapUnit : Unit<Image, Image>
 {
-    public override Array<Image> Execute(Array<Image> informationMaps)
+    public override Image Execute(Image informationMaps)
     {
-        Image heightMap = informationMaps[0];
-        Image humidityMap = Image.CreateEmpty(heightMap.GetWidth(), heightMap.GetWidth(), false, Image.Format.Rgba8);
+        NocturneNoise noise = new NocturneNoise();
+        int range = informationMaps.GetWidth();
 
-        FastNoiseLite noise = new FastNoiseLite()
+        Parallel.For(0, range, x => {
+        Parallel.For(0, range, y =>
         {
-            Seed = (int)GD.Randi(),                             // 随机种子
-            NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin,
-            Frequency = 0.02f,                                  // 控制湿度分布的范围
-            FractalOctaves = 3,                                 // 增加分形层数
-            FractalLacunarity = 2.0f,                           // 增强层间差异
-            FractalGain = 0.5f                                  // 控制振幅衰减
-        };
+            Vector2I pixel = new Vector2I(x, y);
 
-        for (int x = 0; x < humidityMap.GetWidth(); x++)
-        for (int y = 0; y < humidityMap.GetWidth(); y++)
-        {
             float noiseValue = noise.GetNoise2D(x, y);
+            float height = informationMaps.GetPixelv(pixel).R * 10f;
 
-            int height = (int)heightMap.GetPixelv(new Vector2I(x, y)).R;
+            float baseHumidity = (noiseValue + 1) * 50f + 5f; // noise[-1, 1] -> [0, 100]
+            float fluctuation  = height * ((noiseValue + 1f) / 2f); // noise[-1, 1] -> [0, 1]
+            float humidityValue = baseHumidity * fluctuation; // [0, 100] * [0, 1] -> [0, 100]
 
-            float humidityValue = Mathf.Clamp(((noiseValue + 1) * 100) + height * noiseValue * 10, 0, 100);
-            
-            humidityMap.SetPixelv(new Vector2I(x, y), new Color(humidityValue, humidityValue, humidityValue));
-        }
+            Color originalColor = informationMaps.GetPixelv(pixel);
+            float R = originalColor.R;
+            float G = humidityValue / 100f;
+            float B = originalColor.B;
+            Color color = new Color(R, G, B);
 
-        informationMaps.Add(humidityMap);
+            informationMaps.SetPixelv(pixel, color);
+        });});
 
         return informationMaps;
     }

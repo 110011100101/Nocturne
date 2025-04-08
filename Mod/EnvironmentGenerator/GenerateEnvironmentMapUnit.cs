@@ -1,24 +1,23 @@
+using System.Threading.Tasks;
 using Godot;
 using Godot.Collections;
 using Nocturne.Core.Class;
 
-public class GenerateEnvironmentMapUnit : Unit<Array<Image>, Array<Image>>
+public class GenerateEnvironmentMapUnit : Unit<Image, Dictionary<Vector2I, EnumMaterial>>
 {
-    public override Array<Image> Execute(Array<Image> informationMaps)
+    public override Dictionary<Vector2I, EnumMaterial> Execute(Image informationMaps)
     {
-        Image heightMap = informationMaps[0];
-        Image humidityMap = informationMaps[1];
-        Image temperatureMap = informationMaps[2];
-        Image environmentMap = Image.CreateEmpty(heightMap.GetWidth(), heightMap.GetWidth(), false, Image.Format.Rgba8);
+        int range = informationMaps.GetWidth();
+        Dictionary<Vector2I, EnumMaterial> enviromentDic = new Dictionary<Vector2I, EnumMaterial>();
 
-        for (int x = 0; x < environmentMap.GetWidth(); x++)
-        for (int y = 0; y < environmentMap.GetWidth(); y++)
+        Parallel.For(0, range, x => {
+        Parallel.For(0, range, y =>
         {
-            int height = (int)heightMap.GetPixelv(new Vector2I(x, y)).R;
-            float humidity = humidityMap.GetPixelv(new Vector2I(x, y)).R;
-            float temperature = temperatureMap.GetPixelv(new Vector2I(x, y)).R;
-
+            Vector2I pixel = new Vector2I(x, y);
             EnumMaterial material = EnumMaterial.Air; // Default material
+            float height = informationMaps.GetPixelv(pixel).R * 10f;
+            float humidity = informationMaps.GetPixelv(pixel).G * 100f;
+            float temperature = informationMaps.GetPixelv(pixel).B * 1000f - 140f;
 
             // 这个逻辑是基于EnumMaterial的, 除了C#约定你必须在新增材质的时候先引入枚举, 其他方面约等于完全独立
             // 你可以自由搭配前置的材质包mod(这个材质包是真真正正的材质包,不是纹理材质)
@@ -56,11 +55,9 @@ public class GenerateEnvironmentMapUnit : Unit<Array<Image>, Array<Image>>
                 }
             }
 
-            environmentMap.SetPixelv(new Vector2I(x, y), new Color((int)material, (int)material, (int)material));
-        }
+            enviromentDic.Add(pixel, material);
+        });});
 
-        informationMaps.Add(environmentMap);
-
-        return informationMaps;
+        return enviromentDic;
     }
 }
